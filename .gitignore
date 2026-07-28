@@ -1,0 +1,21 @@
+# Python / Django
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+*.log
+
+# Env / secrets
+.env
+*.env
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
