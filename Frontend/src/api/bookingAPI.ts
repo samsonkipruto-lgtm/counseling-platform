@@ -54,6 +54,16 @@ export async function getQueue(): Promise<QueueBooking[]> {
   return response.data;
 }
 
+export async function completeSession(
+  bookingId: number,
+): Promise<QueueBooking> {
+  const response = await axiosInstance.post<QueueBooking>(
+    `/complete/${bookingId}/`,
+    {},
+  );
+  return response.data;
+}
+
 export async function createSlot(
   counselorId: number,
   slotDatetime: string,

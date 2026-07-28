@@ -1,3 +1,4 @@
+import requests
 from audit.utils import log_event
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -8,7 +9,7 @@ from aliases.models import AliasMapping
 from users.permissions import IsAdmin, IsCounselor, IsStudent
 from .models import Booking, SessionSlot
 from .serializers import CounselorQueueSerializer, SessionSlotSerializer, StudentBookingSerializer
-from .utils import assign_counselor, check_identity_reveal, send_booking_sms
+from .utils import assign_counselor, check_identity_reveal, send_booking_confirmation_email
 
 
 @api_view(['GET'])
@@ -66,7 +67,11 @@ def create_booking(request):
         status='waiting',
     )
 
-    send_booking_sms(alias_mapping.alias_code, slot)
+    try:
+        send_booking_confirmation_email(request.user.email, alias_mapping.alias_code, slot)
+    except requests.exceptions.RequestException:
+        pass  # booking already succeeded; email failure shouldn't fail the request
+
     log_event(actor=request.user, action='BOOK', alias=alias_mapping.alias_code, request=request)
 
     return Response(StudentBookingSerializer(booking).data, status=201)
@@ -122,6 +127,29 @@ def get_booking_detail(request, booking_id):
 
     serializer = CounselorQueueSerializer(booking)
     return Response(serializer.data, status=200)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsCounselor])
+def complete_session(request, booking_id):
+    try:
+        booking = Booking.objects.get(id=booking_id, counselor=request.user)
+    except Booking.DoesNotExist:
+        return Response({'error': 'Booking not found'}, status=404)
+
+    if booking.status == 'cancelled':
+        return Response({'error': 'Cannot complete a cancelled booking'}, status=400)
+
+    if booking.status == 'completed':
+        return Response({'error': 'Session already marked complete'}, status=400)
+
+    booking.status = 'completed'
+    booking.save()
+
+    log_event(actor=request.user, action='SESSION_COMPLETE', alias=booking.alias.alias_code, request=request)
+
+    return Response(CounselorQueueSerializer(booking).data, status=200)
 
 
 @api_view(['GET'])

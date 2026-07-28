@@ -17,8 +17,7 @@ class SessionSlot(models.Model):
     )
 
     def __str__(self):
-        return f"{self.counselor.phone_number} @ {self.slot_datetime}"
-
+        return f"{self.counselor.email} @ {self.slot_datetime}"
 
 class Booking(models.Model):
     STATUS_CHOICES = (

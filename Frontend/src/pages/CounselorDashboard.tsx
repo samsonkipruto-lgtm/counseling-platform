@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navbar } from "../components/Navbar";
 import { QueueTable } from "../components/QueueTable";
-import { getQueue, type QueueBooking } from "../api/bookingAPI";
+import {
+  getQueue,
+  completeSession,
+  type QueueBooking,
+} from "../api/bookingAPI";
 import { getErrorMessage } from "../utils/errorUtils";
 import "../pages/dashboard.css";
 
@@ -9,6 +13,7 @@ export function CounselorDashboard() {
   const [bookings, setBookings] = useState<QueueBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [completingId, setCompletingId] = useState<number | null>(null);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -27,6 +32,19 @@ export function CounselorDashboard() {
     loadQueue();
   }, [loadQueue]);
 
+  async function handleComplete(bookingId: number) {
+    setError("");
+    setCompletingId(bookingId);
+    try {
+      await completeSession(bookingId);
+      await loadQueue();
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to mark session complete."));
+    } finally {
+      setCompletingId(null);
+    }
+  }
+
   return (
     <div>
       <Navbar />
@@ -44,7 +62,12 @@ export function CounselorDashboard() {
         )}
 
         {!loading && !error && (
-          <QueueTable bookings={bookings} showRecordLink />
+          <QueueTable
+            bookings={bookings}
+            showRecordLink
+            onComplete={handleComplete}
+            completingId={completingId}
+          />
         )}
       </div>
     </div>

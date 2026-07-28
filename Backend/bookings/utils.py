@@ -1,7 +1,8 @@
-from django.utils import timezone
 from datetime import timedelta
+
+import requests
 from decouple import config
-import africastalking
+from django.utils import timezone
 
 
 def assign_counselor(slot):
@@ -24,12 +25,22 @@ def check_identity_reveal(booking):
     return timezone.now() >= reveal_threshold
 
 
-def send_booking_sms(alias_code, slot):
-    africastalking.initialize(
-        username=config('AT_USERNAME', default='sandbox'),
-        api_key=config('AT_API_KEY'),
+def send_booking_confirmation_email(email, alias_code, slot):
+    response = requests.post(
+        'https://api.brevo.com/v3/smtp/email',
+        headers={
+            'api-key': config('BREVO_API_KEY'),
+            'Content-Type': 'application/json',
+        },
+        json={
+            'sender': {'email': config('DEFAULT_FROM_EMAIL')},
+            'to': [{'email': email}],
+            'subject': 'Booking confirmed',
+            'htmlContent': (
+                f'<p>Your counseling session is confirmed under alias '
+                f'<strong>{alias_code}</strong> for '
+                f'{slot.slot_datetime.strftime("%Y-%m-%d %H:%M")}.</p>'
+            ),
+        },
     )
-    sms = africastalking.SMS
-    message = f"Booking confirmed for {alias_code} on {slot.slot_datetime.strftime('%Y-%m-%d %H:%M')}."
-    # Note: phone number lookup happens at the call site — see views.py
-    return message
+    response.raise_for_status()

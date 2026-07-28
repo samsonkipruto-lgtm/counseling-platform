@@ -5,11 +5,15 @@ import "./queueTable.css";
 interface QueueTableProps {
   bookings: QueueBooking[];
   showRecordLink?: boolean;
+  onComplete?: (bookingId: number) => void;
+  completingId?: number | null;
 }
 
 export function QueueTable({
   bookings,
   showRecordLink = false,
+  onComplete,
+  completingId = null,
 }: QueueTableProps) {
   if (bookings.length === 0) {
     return <p>No bookings to show.</p>;
@@ -23,6 +27,7 @@ export function QueueTable({
           <th>Time</th>
           <th>Status</th>
           {showRecordLink && <th></th>}
+          {onComplete && <th></th>}
         </tr>
       </thead>
       <tbody>
@@ -48,6 +53,21 @@ export function QueueTable({
                 >
                   Open record
                 </Link>
+              </td>
+            )}
+            {onComplete && (
+              <td>
+                {booking.status === "waiting" && (
+                  <button
+                    type="button"
+                    onClick={() => onComplete(booking.id)}
+                    disabled={completingId === booking.id}
+                  >
+                    {completingId === booking.id
+                      ? "Completing..."
+                      : "Mark Complete"}
+                  </button>
+                )}
               </td>
             )}
           </tr>
