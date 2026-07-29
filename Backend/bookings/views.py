@@ -101,9 +101,9 @@ def cancel_booking(request, booking_id):
 @permission_classes([IsAuthenticated])
 def list_queue(request):
     if request.user.role == 'counselor':
-        bookings = Booking.objects.filter(counselor=request.user).exclude(status='cancelled')
+        bookings = Booking.objects.filter(counselor=request.user).exclude(status__in=['cancelled', 'completed'])
     elif request.user.role == 'admin':
-        bookings = Booking.objects.exclude(status='cancelled')
+        bookings = Booking.objects.exclude(status__in=['cancelled', 'completed'])
     else:
         return Response({'error': 'Not permitted'}, status=403)
 

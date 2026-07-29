@@ -9,7 +9,7 @@ class CounselingRecordAdmin(admin.ModelAdmin):
     list_display = ('id', 'booking', 'counselor', 'get_decrypted_notes_preview', 'created_at', 'updated_at')
     list_display_links = ('id', 'booking')
     list_filter = ('counselor', 'created_at')
-    search_fields = ('booking__id', 'counselor__phone_number')
+    search_fields = ('booking__id', 'counselor__email')
     ordering = ('-created_at',)
     
     # Prevents accidental edits from admin UI so records stay tied to the API flow
