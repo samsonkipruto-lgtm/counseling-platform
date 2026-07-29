@@ -7,7 +7,7 @@ import {
   updateRecord,
 } from "../api/recordsAPI";
 import { getErrorMessage } from "../utils/errorUtils";
-import "../pages/dashboard.css";
+import "../components/dashboard.css";
 
 export function RecordFormPage() {
   const { id } = useParams<{ id: string }>();

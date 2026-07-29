@@ -7,7 +7,7 @@ import {
   type QueueBooking,
 } from "../api/bookingAPI";
 import { getErrorMessage } from "../utils/errorUtils";
-import "../pages/dashboard.css";
+import "../components/dashboard.css";
 
 export function CounselorDashboard() {
   const [bookings, setBookings] = useState<QueueBooking[]>([]);

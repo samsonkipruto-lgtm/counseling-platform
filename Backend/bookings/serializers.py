@@ -5,9 +5,15 @@ from .utils import check_identity_reveal
 
 
 class SessionSlotSerializer(serializers.ModelSerializer):
+    counselor_id = serializers.IntegerField(source='counselor.id', read_only=True)
+    counselor_name = serializers.SerializerMethodField()
+
     class Meta:
         model = SessionSlot
-        fields = ['id', 'slot_datetime', 'is_available']
+        fields = ['id', 'slot_datetime', 'is_available', 'counselor_id', 'counselor_name']
+
+    def get_counselor_name(self, obj):
+        return obj.counselor.full_name or obj.counselor.email
 
 
 class StudentBookingSerializer(serializers.ModelSerializer):

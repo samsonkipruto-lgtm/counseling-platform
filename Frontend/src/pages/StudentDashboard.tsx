@@ -5,7 +5,7 @@ import { AliasTag } from "../components/AliasTag";
 import { getMyAlias } from "../api/aliasAPI";
 import { getMyBooking, cancelBooking, type Booking } from "../api/bookingAPI";
 import { getErrorMessage } from "../utils/errorUtils";
-import "./dashboard.css";
+import "../components/dashboard.css";
 
 export function StudentDashboard() {
   const [alias, setAlias] = useState("");

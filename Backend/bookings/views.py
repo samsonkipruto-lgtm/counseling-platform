@@ -11,6 +11,7 @@ from .models import Booking, SessionSlot
 from .serializers import CounselorQueueSerializer, SessionSlotSerializer, StudentBookingSerializer
 from .utils import assign_counselor, check_identity_reveal, send_booking_confirmation_email
 
+from django.db import IntegrityError, transaction
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -31,11 +32,18 @@ def create_slot(request):
     if not counselor_id or not slot_datetime:
         return Response({'error': 'counselor_id and slot_datetime are required'}, status=400)
 
-    slot = SessionSlot.objects.create(
-        counselor_id=counselor_id,
-        slot_datetime=slot_datetime,
-        created_by=request.user,
-    )
+    try:
+        slot = SessionSlot.objects.create(
+            counselor_id=counselor_id,
+            slot_datetime=slot_datetime,
+            created_by=request.user,
+        )
+    except IntegrityError:
+        return Response(
+            {'error': 'This counselor already has a slot at that date and time'},
+            status=409,
+        )
+
     return Response(SessionSlotSerializer(slot).data, status=201)
 
 
@@ -47,25 +55,26 @@ def create_booking(request):
         return Response({'error': 'slot_id is required'}, status=400)
 
     try:
-        slot = SessionSlot.objects.get(id=slot_id, is_available=True)
-    except SessionSlot.DoesNotExist:
-        return Response({'error': 'Slot not found or already booked'}, status=404)
-
-    try:
         alias_mapping = AliasMapping.objects.get(student=request.user)
     except AliasMapping.DoesNotExist:
         return Response({'error': 'No alias found for this account'}, status=404)
 
-    counselor = assign_counselor(slot)
-    if counselor is None:
-        return Response({'error': 'Slot is no longer available'}, status=409)
+    with transaction.atomic():
+        try:
+            slot = SessionSlot.objects.select_for_update().get(id=slot_id, is_available=True)
+        except SessionSlot.DoesNotExist:
+            return Response({'error': 'Slot not found or already booked'}, status=404)
 
-    booking = Booking.objects.create(
-        alias=alias_mapping,
-        counselor=counselor,
-        slot=slot,
-        status='waiting',
-    )
+        counselor = assign_counselor(slot)
+        if counselor is None:
+            return Response({'error': 'Slot is no longer available'}, status=409)
+
+        booking = Booking.objects.create(
+            alias=alias_mapping,
+            counselor=counselor,
+            slot=slot,
+            status='waiting',
+        )
 
     try:
         send_booking_confirmation_email(request.user.email, alias_mapping.alias_code, slot)
@@ -168,3 +177,36 @@ def get_my_booking(request):
         return Response(None, status=200)
 
     return Response(StudentBookingSerializer(booking).data, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsStudent])
+def get_my_history(request):
+    try:
+        alias_mapping = AliasMapping.objects.get(student=request.user)
+    except AliasMapping.DoesNotExist:
+        return Response({'error': 'No alias found for this account'}, status=404)
+
+    bookings = Booking.objects.filter(
+        alias=alias_mapping, status__in=['completed', 'cancelled']
+    ).order_by('-slot__slot_datetime')
+
+    return Response(StudentBookingSerializer(bookings, many=True).data, status=200)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def delete_slot(request, slot_id):
+    try:
+        slot = SessionSlot.objects.get(id=slot_id)
+    except SessionSlot.DoesNotExist:
+        return Response({'error': 'Slot not found'}, status=404)
+
+    if not slot.is_available:
+        return Response({'error': 'Cannot delete a slot that has already been booked'}, status=400)
+
+    slot.delete()
+
+    log_event(actor=request.user, action='SLOT_DELETE', request=request)
+
+    return Response({'message': 'Slot deleted'}, status=200)

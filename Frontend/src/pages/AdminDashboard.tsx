@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useParams } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
-import { AdminSidebar, type AdminSection } from "../components/AdminSidebar";
-import { createSlot } from "../api/bookingAPI";
+import {
+  createSlot,
+  getSlots,
+  deleteSlot,
+  type SessionSlot,
+} from "../api/bookingAPI";
 import {
   getCounselors,
   registerCounselor,
@@ -9,13 +14,28 @@ import {
 } from "../api/usersAPI";
 import { getAuditLogs, type AuditLogEntry } from "../api/auditAPI";
 import { getErrorMessage } from "../utils/errorUtils";
-import "../pages/dashboard.css";
+import "../components/dashboard.css";
+
+export type AdminSection = "overview" | "counselors" | "slots" | "audit";
+
+function isAdminSection(value: string | undefined): value is AdminSection {
+  return (
+    value === "overview" ||
+    value === "counselors" ||
+    value === "slots" ||
+    value === "audit"
+  );
+}
 
 export function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
+  const { section } = useParams<{ section: string }>();
+  const activeSection: AdminSection = isAdminSection(section)
+    ? section
+    : "overview";
 
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [slots, setSlots] = useState<SessionSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,6 +43,7 @@ export function AdminDashboard() {
   const [slotDatetime, setSlotDatetime] = useState("");
   const [creating, setCreating] = useState(false);
   const [slotCreated, setSlotCreated] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const [newCounselorEmail, setNewCounselorEmail] = useState("");
   const [newCounselorName, setNewCounselorName] = useState("");
@@ -33,12 +54,14 @@ export function AdminDashboard() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [counselorData, logData] = await Promise.all([
+      const [counselorData, logData, slotData] = await Promise.all([
         getCounselors(),
         getAuditLogs(),
+        getSlots(),
       ]);
       setCounselors(counselorData);
       setLogs(logData);
+      setSlots(slotData);
     } catch (err) {
       setError(getErrorMessage(err, "Failed to load admin data."));
     } finally {
@@ -64,10 +87,29 @@ export function AdminDashboard() {
       );
       setSlotCreated(true);
       setSlotDatetime("");
+      const updatedSlots = await getSlots();
+      setSlots(updatedSlots);
     } catch (err) {
       setError(getErrorMessage(err, "Failed to create slot."));
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDeleteSlot(slotId: number) {
+    if (!window.confirm("Delete this slot? This cannot be undone.")) {
+      return;
+    }
+    setError("");
+    setDeletingId(slotId);
+    try {
+      await deleteSlot(slotId);
+      const updatedSlots = await getSlots();
+      setSlots(updatedSlots);
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to delete slot."));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -98,8 +140,6 @@ export function AdminDashboard() {
     <div>
       <Navbar />
       <div className="dashboard-container">
-        <AdminSidebar active={activeSection} onSelect={setActiveSection} />
-
         <div className="admin-main">
           <h1>Admin Dashboard</h1>
 
@@ -115,11 +155,26 @@ export function AdminDashboard() {
               {activeSection === "overview" && (
                 <div className="dashboard-card">
                   <p className="subtitle">Overview</p>
-                  <p>{counselors.length} counselor(s) registered.</p>
-                  <p>
-                    {logs.length} audit log entr
-                    {logs.length === 1 ? "y" : "ies"}.
-                  </p>
+                  <div className="stat-grid">
+                    <div className="stat-card">
+                      <span className="stat-number">{counselors.length}</span>
+                      <span className="stat-label">
+                        Counselor{counselors.length === 1 ? "" : "s"} registered
+                      </span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-number">{logs.length}</span>
+                      <span className="stat-label">
+                        Audit log entr{logs.length === 1 ? "y" : "ies"}
+                      </span>
+                    </div>
+                    <div className="stat-card">
+                      <span className="stat-number">{slots.length}</span>
+                      <span className="stat-label">
+                        Available slot{slots.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -243,6 +298,50 @@ export function AdminDashboard() {
                       </p>
                     )}
                   </form>
+
+                  <p className="subtitle" style={{ marginTop: "1.5rem" }}>
+                    Available slots
+                  </p>
+                  {slots.length === 0 ? (
+                    <p>No available slots.</p>
+                  ) : (
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Slot ID</th>
+                          <th>Date &amp; Time</th>
+                          <th>Counselor</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {slots.map((slot) => (
+                          <tr key={slot.id}>
+                            <td>{slot.id}</td>
+                            <td>
+                              {new Date(slot.slot_datetime).toLocaleString()}
+                            </td>
+                            <td>{slot.counselor_name}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSlot(slot.id)}
+                                disabled={deletingId === slot.id}
+                                style={{
+                                  fontSize: "0.8rem",
+                                  padding: "0.35rem 0.75rem",
+                                }}
+                              >
+                                {deletingId === slot.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
 
@@ -252,21 +351,10 @@ export function AdminDashboard() {
                   {logs.length === 0 ? (
                     <p>No audit entries yet.</p>
                   ) : (
-                    <table
-                      style={{
-                        width: "100%",
-                        fontSize: "0.85rem",
-                        borderCollapse: "collapse",
-                      }}
-                    >
+                    <table className="data-table">
                       <thead>
-                        <tr
-                          style={{
-                            textAlign: "left",
-                            color: "var(--color-ink-muted)",
-                          }}
-                        >
-                          <th style={{ padding: "0.5rem 0" }}>Action</th>
+                        <tr>
+                          <th>Action</th>
                           <th>Role</th>
                           <th>Alias</th>
                           <th>Time</th>
@@ -274,15 +362,8 @@ export function AdminDashboard() {
                       </thead>
                       <tbody>
                         {logs.map((log) => (
-                          <tr
-                            key={log.id}
-                            style={{
-                              borderTop: "1px solid var(--color-border)",
-                            }}
-                          >
-                            <td style={{ padding: "0.5rem 0" }}>
-                              {log.action}
-                            </td>
+                          <tr key={log.id}>
+                            <td>{log.action}</td>
                             <td>{log.actor_role}</td>
                             <td>{log.target_alias || "—"}</td>
                             <td>{new Date(log.timestamp).toLocaleString()}</td>

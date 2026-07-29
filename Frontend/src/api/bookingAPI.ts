@@ -4,6 +4,8 @@ export interface SessionSlot {
   id: number;
   slot_datetime: string;
   is_available: boolean;
+  counselor_id: number;
+  counselor_name: string;
 }
 
 export interface Booking {
@@ -72,5 +74,17 @@ export async function createSlot(
     counselor_id: counselorId,
     slot_datetime: slotDatetime,
   });
+  return response.data;
+}
+
+export async function getMyHistory(): Promise<Booking[]> {
+  const response = await axiosInstance.get<Booking[]>("/history/");
+  return response.data;
+}
+
+export async function deleteSlot(slotId: number): Promise<{ message: string }> {
+  const response = await axiosInstance.delete<{ message: string }>(
+    `/slots/${slotId}/`,
+  );
   return response.data;
 }

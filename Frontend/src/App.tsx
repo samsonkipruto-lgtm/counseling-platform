@@ -5,6 +5,7 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { StudentDashboard } from "./pages/StudentDashboard";
 import { BookingPage } from "./pages/BookingPage";
+import { StudentHistoryPage } from "./pages/StudentHistoryPage"; // 1. Add this import
 import { CounselorDashboard } from "./pages/CounselorDashboard";
 import { RecordFormPage } from "./pages/RecordFormPage";
 import { AdminDashboard } from "./pages/AdminDashboard";
@@ -34,6 +35,16 @@ function App() {
         }
       />
 
+      {/* 2. Add the Student History Route */}
+      <Route
+        path="/student/history"
+        element={
+          <ProtectedRoute allowedRoles={["student"]}>
+            <StudentHistoryPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/counselor"
         element={
@@ -54,6 +65,11 @@ function App() {
 
       <Route
         path="/admin"
+        element={<Navigate to="/admin/overview" replace />}
+      />
+
+      <Route
+        path="/admin/:section"
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />

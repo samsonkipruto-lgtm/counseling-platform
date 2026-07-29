@@ -16,6 +16,14 @@ class SessionSlot(models.Model):
         related_name='created_slots', limit_choices_to={'role': 'admin'}
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['counselor', 'slot_datetime'],
+                name='unique_counselor_slot_datetime',
+            )
+        ]
+
     def __str__(self):
         return f"{self.counselor.email} @ {self.slot_datetime}"
 

@@ -10,7 +10,7 @@ import {
   type Booking,
 } from "../api/bookingAPI";
 import { getErrorMessage } from "../utils/errorUtils";
-import "../pages/dashboard.css";
+import "../components/dashboard.css";
 
 export function BookingPage() {
   const [slots, setSlots] = useState<SessionSlot[]>([]);
