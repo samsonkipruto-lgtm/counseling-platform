@@ -210,3 +210,23 @@ def delete_slot(request, slot_id):
     log_event(actor=request.user, action='SLOT_DELETE', request=request)
 
     return Response({'message': 'Slot deleted'}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsCounselor])
+def list_my_slots(request):
+    slots = SessionSlot.objects.filter(
+        counselor=request.user
+    ).order_by('slot_datetime')
+    serializer = SessionSlotSerializer(slots, many=True)
+    return Response(serializer.data, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def list_slots_by_counselor(request, counselor_id):
+    slots = SessionSlot.objects.filter(
+        counselor_id=counselor_id
+    ).order_by('slot_datetime')
+    serializer = SessionSlotSerializer(slots, many=True)
+    return Response(serializer.data, status=200)

@@ -88,3 +88,17 @@ export async function deleteSlot(slotId: number): Promise<{ message: string }> {
   );
   return response.data;
 }
+
+export async function getMySlots(): Promise<SessionSlot[]> {
+  const response = await axiosInstance.get<SessionSlot[]>("/slots/mine/");
+  return response.data;
+}
+
+export async function getCounselorSlots(
+  counselorId: number,
+): Promise<SessionSlot[]> {
+  const response = await axiosInstance.get<SessionSlot[]>(
+    `/slots/counselor/${counselorId}/`,
+  );
+  return response.data;
+}

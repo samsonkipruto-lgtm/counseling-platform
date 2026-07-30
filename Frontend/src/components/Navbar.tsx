@@ -9,6 +9,14 @@ const ADMIN_NAV_ITEMS = [
   { path: "/admin/audit", label: "Audit Log" },
 ];
 
+const STUDENT_NAV_ITEMS = [
+  { path: "/student", label: "Dashboard" },
+  { path: "/book", label: "Book a Session" },
+  { path: "/student/history", label: "History" },
+];
+
+const COUNSELOR_NAV_ITEMS = [{ path: "/counselor", label: "Dashboard" }];
+
 export function Navbar() {
   const { role, logout } = useAuth();
   const navigate = useNavigate();
@@ -27,27 +35,26 @@ export function Navbar() {
     <nav className="navbar">
       <div className="navbar-brand">Counseling Portal</div>
       <div className="navbar-links">
-        {role === "student" && (
-          <>
-            <Link to="/student" className={linkClass("/student")}>
-              Dashboard
-            </Link>
-            <Link to="/book" className={linkClass("/book")}>
-              Book a Session
-            </Link>
+        {role === "student" &&
+          STUDENT_NAV_ITEMS.map((item) => (
             <Link
-              to="/student/history"
-              className={linkClass("/student/history")}
+              key={item.path}
+              to={item.path}
+              className={linkClass(item.path)}
             >
-              History
+              {item.label}
             </Link>
-          </>
-        )}
-        {role === "counselor" && (
-          <Link to="/counselor" className={linkClass("/counselor")}>
-            Dashboard
-          </Link>
-        )}
+          ))}
+        {role === "counselor" &&
+          COUNSELOR_NAV_ITEMS.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={linkClass(item.path)}
+            >
+              {item.label}
+            </Link>
+          ))}
         {role === "admin" &&
           ADMIN_NAV_ITEMS.map((item) => (
             <Link
