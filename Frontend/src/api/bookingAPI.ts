@@ -102,3 +102,8 @@ export async function getCounselorSlots(
   );
   return response.data;
 }
+
+export async function getMyCompletedSessions(): Promise<QueueBooking[]> {
+  const response = await axiosInstance.get<QueueBooking[]>("/completed/");
+  return response.data;
+}

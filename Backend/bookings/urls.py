@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     cancel_booking, complete_session, create_booking, create_slot, delete_slot,
     get_booking_detail, get_my_booking, get_my_history, list_queue, list_slots,
-    list_my_slots, list_slots_by_counselor,
+    list_my_slots, list_slots_by_counselor, get_my_completed_sessions,
 )
 
 urlpatterns = [
@@ -18,4 +18,5 @@ urlpatterns = [
     path('history/', get_my_history, name='my-history'),
     path('slots/mine/', list_my_slots, name='my-slots'),
     path('slots/counselor/<int:counselor_id>/', list_slots_by_counselor, name='counselor-slots'),
+    path('completed/', get_my_completed_sessions, name='my-completed-sessions'),
 ]

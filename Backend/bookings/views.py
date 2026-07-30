@@ -194,6 +194,15 @@ def get_my_history(request):
     return Response(StudentBookingSerializer(bookings, many=True).data, status=200)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsCounselor])
+def get_my_completed_sessions(request):
+    bookings = Booking.objects.filter(
+        counselor=request.user, status='completed'
+    ).order_by('-slot__slot_datetime')
+    return Response(CounselorQueueSerializer(bookings, many=True).data, status=200)
+
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated, IsAdmin])
 def delete_slot(request, slot_id):
@@ -230,3 +239,5 @@ def list_slots_by_counselor(request, counselor_id):
     ).order_by('slot_datetime')
     serializer = SessionSlotSerializer(slots, many=True)
     return Response(serializer.data, status=200)
+
+

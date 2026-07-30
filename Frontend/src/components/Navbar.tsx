@@ -15,7 +15,10 @@ const STUDENT_NAV_ITEMS = [
   { path: "/student/history", label: "History" },
 ];
 
-const COUNSELOR_NAV_ITEMS = [{ path: "/counselor", label: "Dashboard" }];
+const COUNSELOR_NAV_ITEMS = [
+  { path: "/counselor", label: "Dashboard" },
+  { path: "/counselor/history", label: "History" },
+];
 
 export function Navbar() {
   const { role, logout } = useAuth();
